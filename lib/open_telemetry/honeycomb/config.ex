@@ -39,6 +39,7 @@ defmodule OpenTelemetry.Honeycomb.Config do
     |> File.read!()
     |> String.split("<!-- CDOC !-->")
     |> Enum.fetch!(1)
+    |> (&Regex.replace(~R{\(\#\K(?=[a-z][a-z0-9-]+\))}, &1, "module-")).()
   }
   """
 
@@ -47,25 +48,14 @@ defmodule OpenTelemetry.Honeycomb.Config do
   alias OpenTelemetry.Honeycomb.Json
 
   @typedoc """
-  Configuration option for the OpenTelemetry Honeycomb exporter, giving:
-
-  * `api_endpoint`: the API endpoint
-  * `attribute_map`: a map to control dataset attributes used for span properties (see below)
-  * `dataset`: the Honeycomb dataset name
-  * `http_module`: the HTTP back end module (see `Http`)
-  * `http_options`: options to pass to the HTTP back end (see `Http`)
-  * `json_module`: the HTTP back end module (see `Json`)
-  * `write_key`: the write key
-
-  If the `write_key` is absent or `nil`, the exporter replaces your `http_module` with
-  `OpenTelemetry.Honeycomb.Http.WriteKeyMissingBackend` to prevent spamming Honeycomb with
-  unauthenticated requests.
+  Configuration option for the OpenTelemetry Honeycomb exporter.
   """
   @type config_opt ::
           {:api_endpoint, String.t()}
           | {:attribute_map, AttributeMap.t()}
           | {:dataset, String.t()}
           | {:write_key, String.t() | nil}
+          | {:samplerate_key, String.t() | nil}
           | Http.config_opt()
           | Json.config_opt()
 

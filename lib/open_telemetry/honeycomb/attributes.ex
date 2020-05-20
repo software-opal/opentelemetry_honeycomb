@@ -7,6 +7,7 @@ defmodule OpenTelemetry.Honeycomb.Attributes do
     |> File.read!()
     |> String.split("<!-- ADOC !-->")
     |> Enum.fetch!(1)
+    |> (&Regex.replace(~R{\(\#\K(?=[a-z][a-z0-9-]+\))}, &1, "module-")).()
   }
   """
 
@@ -111,6 +112,7 @@ defmodule OpenTelemetry.Honeycomb.Attributes do
     |> File.read!()
     |> String.split("<!-- TRIMDOC !-->")
     |> Enum.fetch!(1)
+    |> (&Regex.replace(~R{\(\#\K(?=[a-z][a-z0-9-]+\))}, &1, "module-")).()
   }
   """
   def trim_long_strings({k, <<_::binary-size(@hc_value_limit)>> = v}), do: {k, v}

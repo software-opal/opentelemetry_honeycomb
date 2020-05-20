@@ -56,8 +56,68 @@ config :opentelemetry,
 ```
 
 `processors` specifies `ot_batch_processor`, which specifies `exporter`, a 2-tuple of the
-exporter's module name and options to be supplied to its `init/1`. Our exporter takes a list of
-`t:OpenTelemetry.Honeycomb.Config.config_opt/0` as its options.
+exporter's module name and options to be supplied to its `init/1`.
+
+Our exporter takes a keyword list of `t:OpenTelemetry.Honeycomb.Config.config_opt/0` as its
+options, with keys:
+
+* `api_endpoint`: the API endpoint
+* `attribute_map`: a map to control dataset attributes used for span properties
+  (see `OpenTelemetry.Honeycomb.Config.AttributeMap`)
+* `dataset`: the Honeycomb dataset name
+* `http_module`: the HTTP back end module (see `OpenTelemetry.Honeycomb.Http`)
+* `http_options`: options to pass to the HTTP back end (see `OpenTelemetry.Honeycomb.Http`)
+* `samplerate_key`: the attribute key smuggling your sample rate to Honeycomb (see below)
+* `json_module`: the HTTP back end module (see `OpenTelemetry.Honeycomb.Json`)
+* `write_key`: the write key (see below)
+
+`samplerate_key` provides interim support for reporting your [dynamic sampling][hcds] decisions
+to Honeycomb, in advance of any support from the OpenTelemetry specification; see
+[Sampling](#sampling) below.
+
+If the `write_key` is absent or `nil`, the exporter replaces your `http_module` with
+`OpenTelemetry.Honeycomb.Http.WriteKeyMissingBackend` to prevent spamming Honeycomb with
+unauthenticated requests.
+
+[hcds]: https://docs.honeycomb.io/working-with-your-data/best-practices/sampling/#dynamic-sampling
+[MUST]: https://tools.ietf.org/html/rfc2119#section-1
+[MAY]: https://tools.ietf.org/html/rfc2119#section-5
+
+## Sampling
+
+To sampling your events before sending them, configure `samplerate_key` to some key that won't
+collide with the rest of your data, _eg._ `"...samplerate"` or `"hc_sample"`:
+
+```elixir
+config :opentelemetry,
+  processors: [
+    ot_batch_processor: %{
+      scheduled_delay_ms: 1,
+      exporter:
+        {OpenTelemetry.Honeycomb.Exporter,
+         samplerate_key: "...samplerate",
+         write_key: "HONEYCOMB_WRITEKEY"}
+    }
+  ]
+```
+
+Set that attribute on your spans to whatever postitive integer seems appropriate at the time:
+
+```elixir
+OpenTelemetry.Span.set_attribute("...samplerate", 42)
+```
+
+The attribute value [MUST] be a positive integer. You [MAY] skip setting it, in which case we'll
+assume you wanted the span _ie._ the sample rate was 1.
+
+The exporter will:
+
+* Pop the sample rate key out of the attribute map_ so it can't be confused for a measurement
+
+* Send it to Honeycomb, who'll then use it to compensate their `COUNT` and other visualised data.
+
+Please treat this as an interim API. We trust the OpenTelemetry specification will evolve to cover
+this use case, after which you'll be able to get this result without an implementation kludge.
 
 <!-- CDOC !-->
 

@@ -3,6 +3,7 @@ defmodule OpenTelemetry.Honeycomb do
              |> File.read!()
              |> String.split("<!-- MDOC !-->")
              |> Enum.fetch!(1)
+             |> (&Regex.replace(~R{\(\#\K(?=[a-z][a-z0-9-]+\))}, &1, "module-")).()
 
   @doc "Get the version string for the OpenTelemetry Honeycomb exporter."
   def version do

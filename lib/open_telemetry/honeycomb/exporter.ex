@@ -82,15 +82,31 @@ defmodule OpenTelemetry.Honeycomb.Exporter do
   defp export_loaded(spans, resource, config) do
     resource_attributes = :ot_resource.attributes(resource) |> Attributes.sort()
     attribute_map = config[:attribute_map]
-    cook = fn ot_span -> Event.from_ot_span(ot_span, resource_attributes, attribute_map) end
+
+    cook = fn ot_span ->
+      Event.from_ot_span(
+        ot_span,
+        resource_attributes,
+        attribute_map,
+        Keyword.get(config, :samplerate_key)
+      )
+    end
 
     spans
     |> Enum.flat_map(cook)
+    |> Enum.filter(&survived_sampling?/1)
     |> Enum.map(&Json.encode_to_iodata!(config, &1))
     |> chunk_events()
     |> Enum.map(&send_batch(&1, config))
     |> Enum.find_value(:ok, &find_hc_batch_errors/1)
   end
+
+  defp survived_sampling?(%Event{samplerate: 1}), do: true
+
+  defp survived_sampling?(%Event{samplerate: n}) when is_integer(n) and n > 0,
+    do: :rand.uniform(n) == 1
+
+  defp survived_sampling?(_), do: false
 
   defp find_hc_batch_errors(:ok), do: false
   defp find_hc_batch_errors(error), do: error
