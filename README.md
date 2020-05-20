@@ -116,7 +116,7 @@ The exporter will:
 
 * Send it to Honeycomb, who'll then use it to compensate their `COUNT` and other visualised data.
 
-Please treat this as an interim API. We trust the OpenTelemetry specification will evolve to cover
+Please treat this as an off-API workaround. We trust the OpenTelemetry specification will evolve to cover
 this use case, after which you'll be able to get this result without an implementation kludge.
 
 <!-- CDOC !-->
